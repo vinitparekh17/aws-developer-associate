@@ -9,6 +9,7 @@
     - High-performance hardware disk, use EC2 Instance
     - Better I/O
     - Loss the data if ec2 stoped
+- If you want capacity reservation, use `Zonal Reserved Instances`.
 
 ## 2. ELB
 - Types of load balancers:
@@ -16,7 +17,6 @@
         - HTTP, HTTPS, TCP, SSL (secure TCP) IPv4 & IPv6
         - Health checks are TCP or HTTP based
         - Fixed hostname: xxx.region.elb.amazonaws.com
-
     - *`Application Load Balancer`* (v2 - new generation) – 2016 – ALB
         - Layer 7 HTTP, HTTPS, WebSocket, HTTP/2
         - Support redirects (fixed hostname)
@@ -27,12 +27,12 @@
         - Port mapping feature to redirect to a dynamic port in ECS
         - Application servers don’t see the IP of the client directly (it sees the IP of the load balancer instead)
         - `X-Forwarded-For` header contains the IP address of the client and `X-Forwarded-Port` contains the port from which the client connected to the load balancer.
+        - Cross zone load balancing is always enabled for ALB by default
         - **`ALB Access Logs`** capture detailed information about requests sent to your load balancer
     - *`Network Load Balancer`* (v2 - new generation) – 2017 – NLB
         - TCP, TLS (secure TCP), UDP
         - Extreme performance, static IP or Elastic IP
-        - Less latency ~100ms (vs 400ms for ALB)
-
+        - Less latency ~100ms (vs 400ms for ALB)        
     - **Gateway Load Balancer** – 2020 – GWLB
         - Operates at layer 3 (Network layer) – IP Protoco
         - Used to deploy, scale and manage third-party virtual appliances such as firewalls, intrusion detection and prevention systems, analytics, etc.
@@ -40,9 +40,8 @@
         - Uses the `GENEVE` protocol on `port 6081`
         - Target group: EC2 (must be private IP)
 
-
 - **Launch Configuration of elb:**
-    
+- `Health Check Grace Period` is the amount of time that the Auto Scaling group waits before checking the health status of an EC2 instance that has come into service.
 
 ## 3. ASG - Auto Scaling Group
 - Scale out (add EC2) to match an increased load
@@ -82,13 +81,13 @@ to your instances.
 - Locked to AZ, snapshot to move across AZs
 - By default, the root EBS volume is deleted and others don't 
 - Recycle Bin for EBS Snapshots
-    • Setup rules to retain deleted snapshots so you can recover them after an accidental deletion
-    • Specify retention (from 1 day to 1 year)
+    - Setup rules to retain deleted snapshots so you can recover them after an accidental deletion
+    - Specify retention (from 1 day to 1 year)
 - 6 types:
-    • gp2 / gp3 (SSD): General purpose SSD volume that balances price and performance for a wide variety of workloads
-    • io1 / io2 (SSD): Highest-performance SSD volume for mission-critical low-latency or high-throughput workloads
-    • st1 (HDD): Low cost HDD volume designed for frequently accessed, throughput-intensive workloads
-    • sc1 (HDD): Lowest cost HDD volume designed for less frequently accessed workloads
+    - gp2 / gp3 (SSD): General purpose SSD volume that balances price and performance for a wide variety of workloads
+    - io1 / io2 (SSD): Highest-performance SSD volume for mission-critical low-latency or high-throughput workloads
+    - st1 (HDD): Low cost HDD volume designed for frequently accessed, throughput-intensive workloads
+    - sc1 (HDD): Lowest cost HDD volume designed for less frequently accessed workloads
 - Only gp2/gp3 and io1/io2 can be used as boot volumes.
 - `1 GiB - 16 TiB` range of storage ( min - max )
 
@@ -96,49 +95,62 @@ to your instances.
 - Managed Network file system (NFS)
 - Works with EC2 instances in multi-AZ
 - Uses: NFSv4.1 protocol
-- 2 Performance modes: <br> 
-    • General purpose (default) <br>
-    • Max I/O - higher latency
-- Throughput modes: <br>
-    • Bursting (default) - scales as file system grows <br>
-    • Provisioned - provision throughput regardless of storage size
-    • Elastic - provision throughput as file system grows.
+- 2 Performance modes:
+    - General purpose (default)
+    - Max I/O - higher latency
+- Throughput modes:
+    - Bursting (default) - scales as file system grows
+    - Provisioned - provision throughput regardless of storage size
+    - Elastic - provision throughput as file system grows.
 
 ## 8. RDS
 - Allows to create relational databases in the cloud
-- List of supported engines: <br>
-    • PostgreSQL <br>
-    • MySQL <br>
-    • MariaDB <br>
-    • Oracle <br>
-    • Microsoft SQL Server <br>
-    • Aurora (AWS Proprietary database) <br>
+- List of supported engines:
+    - PostgreSQL
+    - MySQL
+    - MariaDB
+    - Oracle
+    - Microsoft SQL Server
+    - Aurora (AWS Proprietary database)
+- RDS provides automated backups (retention period from 1 to 35 days)
 ### Advantages:
 - Managed service: automated provisioning, OS patching, continuous backups, DB setup, configuration & patching
 - Multi AZ setup for disaster recovery
 - Can't ssh into the instances
 - Have to set max storage threshold
 - Auto modifies the storage if:
-    • Free storage < 10% of allocated storage
-    • Low storage lasts 5 minutes
-
+    - Free storage < 10% of allocated storage
+    - Low storage lasts 5 minutes
 ### Read Replicas:
 - Up to 5 read replicas
 - Async replication so reads are eventually consistent
 - Can be Multi AZ
 - Must update connection string to leverage read replicas
 - Only used for read only queries (no writes), except for Aurora MySQL 5.7
+### RDS Backups:
+- Automated backups:
+    - These backups are within the `same region` as the DB
+    - Daily full snapshot of the database
+    - Capture transaction logs in real time
+    - Ability to restore to any point in time (from oldest backup to 5 minutes ago)
+    - 7 days retention (can be increased to 35 days)
+    - Enabled by default
+- Snapshots:
+    - Manually triggered by the user
+    - Retention of backup for as long as you want
+- Restoring a backup creates a new RDS instance with a new DNS endpoint
+- Backups are stored in S3 and are free in the same region
 
-## 9. Aurora:
+## 9. Aurora
 - Pg and MySQL compatible so drivers will work as if Aurora was a Postgres or MySQL db.
 - Cloud Optimized (5x faster than MySQL, 3x faster than Postgres)
-- Grows in increments of 10GB up to 128TB
-- Have up to 15 replicas
+- Grows in increments of 10GB up to 128TB.
+- Have up to 15 replicas.
 - Cost 20% more than RDS.
-- Storage stiped across 100s of volumes
-- Failover in less than 30 seconds
+- Storage stiped across 100s of volumes.
+- Failover in less than 30 seconds.
 
-## 10. Elastic Cache:
+## 10. Elastic Cache
 - In-memory data store
 - Redis or Memcached
 - Improve latency and throughput for read-heavy applications
@@ -164,13 +176,14 @@ to your instances.
 - ECR is backed by S3
 - EKS is way to launch managed Kubernetes clusters on AWS
 
-## 13, Amazon MemoryDB:
+> Note: If you terminate the container instance while it was in `STOPPED` state, that will lead to synchronization issues between ECS and EC2. 
+> Solution is to `Deregister` the container instance from ECS cluster before terminating it.
 
+## 13. Amazon MemoryDB
 - Over 160 million reads per second
 - Scales seamlessly from 10s GB to 100s of TBs
 
-## 14. Route53:
-
+## 14. Route53
 - DNS service
 - The only service that is 100% available
 
@@ -197,7 +210,7 @@ to your instances.
         #### Simple (default)
         - Can specify multi values
         - Random one will be choosen
-        - Can'r be assosiacted with health checks <br>
+        - Can't be assosiacted with health checks <br>
 
         #### Weighted
         - Control the % of the requests that go to each specific resource
@@ -230,8 +243,7 @@ to your instances.
         - Up to 8 healthy records are returned for each multi value query
         - Not a substitute for having an ELB
 
-## 15. VPC:
-
+## 15. VPC
 1. IGW - Internet Gateway helps to connect to the internet
 2. NAT Gateway - helps to connect to the internet from private subnet
 3. NAT Instance - helps to connect to the internet from private subnet
@@ -243,12 +255,11 @@ to your instances.
     - Static website hosting
     - Disaster Recovery
     - Media hosting (videos, images, etc.)
-
 - Max file size: 5TB
 - if more than 5GB then use multi-part upload
 - Enabling versioning will have version `null`
 - Suspending versioning doesn't delete the previous versions
-- CRR (Cross Region Replication) 
+- CRR (Cross Region Replication)
     - complience, lower latency, replication across accounts
 - SRR (Same Region Replication)
     - log aggregation, live replication between production and test accounts
@@ -263,37 +274,45 @@ to your instances.
     - S3 Glacier Flexible Retreival
     - S3 Glacier Deep Archive
 
-<br>
+> Adopting an object key naming pattern that distributes reads across a larger number of key names can improve performance across the prefix because Amazon S3 can load-balance prefixes that have less traffic onto fewer servers. 
 
-- S3 Lifecycle rules:
+### S3 Replication:
+
+- S3 lifecycle action `can't` be replicated
+- Types of replication:
+    - Cross Region Replication (CRR)
+    - Same Region Replication (SRR)
+- S3 Batch Replication used to replicate existing objects to another bucket or another AWS account ( on-demand )
+
+### S3 Lifecycle rules:
     - Transition action: move objects to another storage class after a certain period of time 
     - Expiration action: delete the object after a certain period of time
     - Can be applied to current versions and previous versions
 
-- S3 Baseline Performance:
+### S3 Baseline Performance:
     - 3,500 PUT/COPY/POST/DELETE or 5,500 GET/HEAD requests per second per prefix in a bucket
     - If you spread reads across all the prefixes, you can achieve 22,000 read requests per second
 
-- S3 Encryption:
-    - With Amazon S3-Managed Keys (SSE-S3)
-        - Enabled by default
-        - Uses AES-256 encryption
-        - Header: `x-amz-server-side-encryption: AES256`
+### S3 Encryption:
+- With Amazon S3-Managed Keys (SSE-S3)
+    - Enabled by default
+    - Uses AES-256 encryption
+    - Header: `x-amz-server-side-encryption: AES256`
 
-    - With AWS KMS-Managed Keys (SSE-KMS)
-        - user control + audit trail (who used the key to access which object)
-        - Header: `x-amz-server-side-encryption: aws:kms`
-        - Limitation of using KMS:
-            1. Must be in the same region
-            2. Additional charges from KMS
-            3. `GenerateDataKey` and `Decrypt` API calls are needed to upload/download objects
+- With AWS KMS-Managed Keys (SSE-KMS)
+    - user control + audit trail (who used the key to access which object)
+    - Header: `x-amz-server-side-encryption: aws:kms`
+    - Limitation of using KMS:
+        1. Must be in the same region
+        2. Additional charges from KMS
+        3. `GenerateDataKey` and `Decrypt` API calls are needed to upload/download objects
     
-    - With Customer-Provided Keys (SSE-C)
+- With Customer-Provided Keys (SSE-C)
     - Client-Side Encryption
-        - Uses client-side lib.
-        - Must decrypt by themselves
+    - Uses client-side lib.
+    - Must decrypt by themselves
 
-## 17. CloudFront:
+## 17. CloudFront
 
 - DDos protection, integration with Shield, AWS Web Application Firewall
 
@@ -316,7 +335,7 @@ to your instances.
 - Lightweight, written in `JS`, edge compute for modifying requests and responses
 - Can be used to modify headers, redirect users, etc.
 
-## 15. Elastic Beanstalk
+## 18. Elastic Beanstalk
 
 - Managed service to deploy web applications
 
@@ -364,7 +383,7 @@ to your instances.
 - `RDS` can be provisioned with beanstalk, gr8 for dev/test but not for prod.
 - Best way is to separately create RDS DB and provide connection string to `EB`
 
-## 18. CloudFormation
+## 19. CloudFormation
 > - Infra as a code
 > - Can' t create dynamic amount of res.
 ### Templates Components:
@@ -374,7 +393,7 @@ to your instances.
     - 224 resources types
 2. Parameters: the dynamic inputs for your template
     - `!Ref` used to reference parameters
-    - Pseudo parameters: `AWS::AccountId`, `AWS::Region`, `AWS::StackName`
+    - Pseudo parameters are predefined by AWS (e.g. `AWS::Region`)
 3. Mappings: the static variables for your template
     - Used to map a key to a corresponding name
     - `!FindInMap` used to reference mappings
@@ -404,7 +423,7 @@ to your instances.
 
 > Note: An exported value in cloudformation must be unique within an AWS region ( Same region ) 
 
-## 19. SQS
+## 20. SQS
 - Unlimited throughput and number of msg in queue
 - Default retention of messages: `4 days, maximum of 14 days`
 - Poll msgs up to 10 at a time.
@@ -428,7 +447,10 @@ throughput of processing
 
 ### DLQ:
 
-[PANDING...]
+- If a consumer fails to process a message, it can be sent to a dead-letter queue (DLQ)
+- Useful to debug errors
+- `redrive allow policy` used to specify which source queues can access the DLQ
+- `maxReceiveCount` used to specify how many times a message can be received before being sent to the DLQ 
 
 ### SQS Long Polling:
 
@@ -444,8 +466,22 @@ throughput of processing
 - `ReceiveMessageWaitTimeSeconds`: Long Polling
 - `ChangeMessageVisibility`: change the message timeout
 
-## 20. SNS:
+### SQS Delay Queues:
 
+- Used to postpone the delivery of new messages
+- Default delay: 0s, max 15 mins
+- Can set a default delay for the entire queue
+- Can override the delay on a per-message basis
+
+### SQS Extended Client:
+
+- Used to send messages larger than 256KB.
+- Can store up to 2GB of data per message.
+- Uses S3 to store the message payloads
+- `SendMessageBatch` API used to send messages in batches
+- `ReceiveMessage` API used to receive messages in batches
+
+## 21. SNS
 - Push notifications to mobile devices, email, SQS queues, HTTP endpoints
 - Fan-out pattern: 1 message published to SNS topic and received by many SQS queues or HTTP endpoints
 - Up to 12,500,000 subscriptions per topic
@@ -460,11 +496,11 @@ throughput of processing
 | Send one message to many receivers | Each message goes to one receiver |
 | Subscribers can be web servers, email addresses, SQS queues, Lambda functions, mobile devices | Subscribers can be SQS queues, Lambda functions, web servers |
 
-## 21. Kinesis
+## 22. Kinesis
 ### `Kinesis Data Streams`:
-> Capture, store, and process data streams in real time
-  
-- Retention: 1 day to 365 days
+- Capture, store, and process data streams in real time
+- KDS can store data from 24 hours to 7 days
+- Retention period can be increased to 365 days using extended data retention
 - Can have multiple consumers
 - Provisioned mode:
     - Shards: 1MB/s or 1000 msg/s at write PER SHARD (1MB/s OUT)
@@ -493,8 +529,7 @@ throughput of processing
 
 - `Kinesis Video Streams`: Capture, process, and store video streams.
 
-## 22. Lambda
-
+## 23. Lambda
 - Lambda tries 3 times in case of failures
 - 1min wait after 1st attempt then 2min wait
 - DLQ can be used to capture failed events
@@ -505,7 +540,15 @@ throughput of processing
 - VPC endpoints can be used to access AWS services
 - 1792MB of memory = 1 vCPU
 - `/temp` directory is limited to 10GB and used for disk space if lambda needs to write something to disk
+- `cron` jobs can be created using CloudWatch Events and Lambda ( cron expression means UTC time )
+
+### Lambda Authorizers:
 - `Lambda authorizer` can be used to authorize API Gateway requests
+- 2 types of Lambda authorizers:
+    - Token-based: uses bearer token (JWT)
+    - Request-based: uses headers, query strings, stage variables, etc.
+
+
 - Lambda can be deployed as a container up to 10GB from ECR
 - **`Lambda Runtime Interface Emulator`** used to test lambda functions locally
 - Must create the Lambda function from the same account as the container registry in Amazon ECR
@@ -542,8 +585,7 @@ throughput of processing
 - Can deploy lambda with code `deploy`, AppSpec file is executed by CodeDeploy to deploy the code.
 - Env size limit: 4KB
 
-## 23. DynamoDB
-
+## 24. DynamoDB
 - max size of item: 400KB
 - max size of partition key: 2048 bytes
 - `“ProvisionedThroughputExceededException”` error occurs when limit is exceeded (read/write capacity)
@@ -602,7 +644,6 @@ throughput of processing
 - Two operations:
     > TransactGetItems: <br/>
     > one or more `GetItem` operations
-
     > TransactWriteItems: <br/>
     > one or more `PutItem`, `UpdateItem`, `DeleteItem` operations 
     > `TransactWriteItems` can contain up to 10 operations and used to update multiple items atomically
@@ -610,8 +651,13 @@ throughput of processing
 - Example1: 3 Transactional writes per second, with item size 5 KB
     > 3 ∗ (5kb/1kb) ∗ 2 (𝑡𝑟𝑎𝑛𝑠𝑎𝑐𝑡𝑖𝑜𝑛𝑎𝑙 𝑐𝑜𝑠𝑡) = 30 𝑊𝐶𝑈𝑠
 
-## 24. API Gateway
+### DynamoDB Backup:
 
+- Default backup option: On-Demand Backup, Point-in-Time Recovery (PITR)
+- In default backup option, backups are stored in S3 but can’t be accessed directly. (only through DynamoDB) So if you want to access the s3 the simple way is to use `Export to S3` option.
+- AWS other services such as `Data Pipeline`, `EMR`, `Glue` can be used to export data from DynamoDB to S3. 
+
+## 25. API Gateway
 - Used to create, publish, maintain, monitor, and secure APIs
 - Can create APIs for:
     - REST APIs
@@ -637,7 +683,7 @@ throughput of processing
 | Simpler | More integrations |
 | Supports OIDC and JWT | Supports Cognito and Lambda Authorizers |
 
-## 25. CICD
+## 26. CICD
 
 ### CodeCommit:
 - Source control service that hosts Git-based repositories
@@ -660,15 +706,17 @@ throughput of processing
 - Bundling the dependencies with the source code is a best practice to avoid long install times and to ensure that the build always uses the same dependencies
 
 ### CodeDeploy:
-
 - File named `appspec.yml` used to manage deployments.
 - Can be used to deploy to EC2, Lambda, ECS, on-premises instances
 - Must run **CodeDeploy** agent on EC2 instances
 - `“InvalidSignatureException` error occurs when time on EC2 and signature on CodeDeploy are not in sync.
 - `validateService` API call used to check if CodeDeploy agent is running on EC2 instances
 
-### CodeStar:
+#### CodeDeploy Agent:
+- A software that runs on EC2 instances and listens to CodeDeploy
+- It archives revisions ( revision = appspec.yml + application files ) and log files and cleans up to conserve disk space.
 
+### CodeStar:
 - All in one service for CICD
 
 ### CodeArtifact:
@@ -681,7 +729,7 @@ throughput of processing
 
 - Supports Java and Python
 
-## 26. SAM - Serverless Application Model
+## 27. SAM - Serverless Application Model
 
 - `Transform: 'AWS::Serverless-2016-10-31'` indicates that this is a SAM template
 - `Resources` section is where you define your Lambda functions, APIs, DynamoDB tables, etc.
@@ -696,12 +744,13 @@ throughput of processing
 
 
 
-## 27. IAM ( User, Group, Policy )
+## 28. IAM ( User, Group, Policy )
 - User: are people within your organization, and can be grouped
 - Groups only contain users, not other groups.
 - In policy apply the least privilege principle.
 - **`IAM Access Advisor`** shows the service permissions granted to a user and when those services were last accessed.
 - **`IAM Access Analyzer`** used to analyze resource policies to help administrators and security teams protect their resources from unintended access.
+- IAM Role / User `can not` be attachted to `on premises` ec2 instance.
 
 ### Policy Stucture:
 
@@ -722,13 +771,13 @@ throughput of processing
 • a report that lists all your account's users and the status of their various credentials
 
 - IAM Access Advisor (user-level)
-• A:ccess advisor shows the service permissions granted to a user and when those services were last accessed.
+- Access advisor shows the service permissions granted to a user and when those services were last accessed.
 
-## 28, CloudWatch
+## 29. CloudWatch
 - Used to monitor AWS resources and applications
 - In **EC2 detail monitoring** cloud watch will collect data every 1 min
 - `cloudwatch high resolution` will collect data every 1 sec (for an additional cost)
-- ``
+- `CloudWatch log agent` used to send logs related to OS, web servers, etc. to CloudWatch
 
 ### CloudWatch Custom Metrics:
 - `PutMetricData` API call used to send custom metrics to CloudWatch
@@ -770,10 +819,9 @@ ALARM --state-reason "testing purposes"
 - AWS requires approx `5 weeks` of usage to create a forecast
 
 
-## 29. AWS Other Services
+## 30. AWS Other Services
 
 ### AWS Cognito:
-
 - Used to add authentication, authorization, and user management to web and mobile apps
 - `User Pools`: used to manage sign-up and sign-in functionality for web and mobile apps
 - `Identity Pools`: used to provide AWS credentials to users so they can access AWS resources directly
@@ -792,11 +840,12 @@ ALARM --state-reason "testing purposes"
 - Wait state: wait before moving to the next state
 
 #### Step Functions Standard vs Express Workflows:
-|| Standard | Express |
-| --- | --- | --- |
-| Max execution time | 1 year | 5 mins |
-| Execution Model | Event-driven | Request/response |
-| Retry | Yes | No |
+    
+
+| Standard | Express |
+| --- | --- |
+| Standard workflows have exactly-once workflow execution and can run for up to `1 year`. This means that each step in a Standard workflow will execute exactly once.| Express workflows, however, have at-least-once workflow execution and can run for `up to 5 minutes`. |
+| Standard workflows are ideal for long-running, auditable workflows, as they show execution history and visual debugging. | Express workflows are ideal for high-event-rate workloads, such as streaming data processing and IoT data ingestion. |
 
 ### AWS AppSync:
 - Uses `GraphQL` to interact with data sources.
@@ -812,18 +861,15 @@ ALARM --state-reason "testing purposes"
 - Allows to grant limited and temporary access to AWS resources
 
 ### AWS SES - Simple Email Service:
-
 - Managed email service to send emails at scale
 
 ### AWS OpenSearch Service:
-
 - Managed service to deploy, secure, and operate Elasticsearch clusters
 - 2 modes: managed cluster and serverless cluster
 - Doesn't natively support SQL
 - Comes with dashboards and Kibana
 
 ### AWS Athena:
-
 - Used to query data in S3 using SQL
 - Supports **CSV, JSON, ORC, Avro, Parquet, etc**.
 
@@ -844,7 +890,7 @@ ALARM --state-reason "testing purposes"
 - Independent from application code.
 - Features: flags, app tuning, allow/deny, etc.
 
-## 30, AWS Security Services:
+## 31, AWS Security Services
 
 ### AWS KMS - Key Management Service:
 - managed by AWS
