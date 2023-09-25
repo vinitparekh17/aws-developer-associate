@@ -58,6 +58,10 @@
 - ASG that spans across multiple regions need to be enabled for each region
 - ASG that can contain EC2 instances in only one AZ of a region
 - Unhealthy instances are terminated and replaced by new ones (ASG)
+- ASG is used in these deployment strategies:
+    - Rolling updates: terminate one instance at a time and wait for the health check to pass
+    - Blue/green deployments: launch a new ASG with the new version, and switch the traffic to the new ASG
+    - Can be used with CodeDeploy
 
 ## 4. Elastic IP
 - Public IPv4 IP you own as long as you don’t delete it
@@ -244,9 +248,14 @@ to your instances.
         - Not a substitute for having an ELB
 
 ## 15. VPC
-1. IGW - Internet Gateway helps to connect to the internet
-2. NAT Gateway - helps to connect to the internet from private subnet
-3. NAT Instance - helps to connect to the internet from private subnet
+- IGW - Internet Gateway helps to connect to the internet
+- NAT Gateway - helps to connect to the internet from private subnet
+- NAT Instance - helps to connect to the internet from private subnet
+- The network ACLs associated with the subnet must have rules to allow inbound and outbound traffic.
+- The route table in the instance's subnet should have a route to an internet gateway or virtual private gateway.
+- VPC logs is used to monitor the traffic flow in VPC and can be used for security analysis and troubleshooting.
+- BGP (Border Gateway Protocol) based VPN connection is used to connect to on-premises network and all the log can captured from `VPC Flow Logs`.
+- An outbound rule must be `added` to the network ACLS to allow the response to be sent to the client on the ephemeral port range.
 
 ## 16. S3
 - Infinitely scalable
@@ -648,6 +657,9 @@ throughput of processing
     > one or more `PutItem`, `UpdateItem`, `DeleteItem` operations 
     > `TransactWriteItems` can contain up to 10 operations and used to update multiple items atomically
 
+- `UpdateItem` api can be used to implement `Optimistic Locking` by using `ConditionExpression` to check the version number.
+- `UpdateItem` api can edit the existing item or create a new item if it doesn't exist.
+
 - Example1: 3 Transactional writes per second, with item size 5 KB
     > 3 ∗ (5kb/1kb) ∗ 2 (𝑡𝑟𝑎𝑛𝑠𝑎𝑐𝑡𝑖𝑜𝑛𝑎𝑙 𝑐𝑜𝑠𝑡) = 30 𝑊𝐶𝑈𝑠
 
@@ -672,7 +684,8 @@ throughput of processing
     - Edge-optimized: default, for global clients
     - Regional: for clients within the same region
     - Private: for clients within the same VPC
-- Can use API Gateway as a proxy for DynamoDB, S3, or HTTP endpoints
+- Can use API Gateway as a proxy for DynamoDB, S3, or HTTP endpoints.
+- API Gateway do not support `AWS STS` (Security Token Service) API calls.
 
 ### HTTP API vs REST API:
 
@@ -715,6 +728,12 @@ throughput of processing
 #### CodeDeploy Agent:
 - A software that runs on EC2 instances and listens to CodeDeploy
 - It archives revisions ( revision = appspec.yml + application files ) and log files and cleans up to conserve disk space.
+
+#### Use cases of appspec.yml:
+- Map the source files in the application revision to their destinations on the instance.
+- Specify custom permissions for deployed files.
+- Specify scripts to be run on each instance at various stages of the deployment process.
+- `CodeDeploy Agent` looks up the name of the current event in the `appspec.yml` file and runs the corresponding scripts.
 
 ### CodeStar:
 - All in one service for CICD
