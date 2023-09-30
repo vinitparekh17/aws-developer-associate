@@ -26,6 +26,7 @@
             • Routing based on Query String, Headers (example.com/users?id=123&order=false)
         - Port mapping feature to redirect to a dynamic port in ECS
         - Application servers don’t see the IP of the client directly (it sees the IP of the load balancer instead)
+        - ALB without targets will result in `503` error
         - `X-Forwarded-For` header contains the IP address of the client and `X-Forwarded-Port` contains the port from which the client connected to the load balancer.
         - Cross zone load balancing is always enabled for ALB by default
         - **`ALB Access Logs`** capture detailed information about requests sent to your load balancer
@@ -40,7 +41,6 @@
         - Uses the `GENEVE` protocol on `port 6081`
         - Target group: EC2 (must be private IP)
 
-- **Launch Configuration of elb:**
 - `Health Check Grace Period` is the amount of time that the Auto Scaling group waits before checking the health status of an EC2 instance that has come into service.
 
 ## 3. ASG - Auto Scaling Group
@@ -159,6 +159,13 @@ to your instances.
 - Redis or Memcached
 - Improve latency and throughput for read-heavy applications
 - Cache often accessed data
+- Caching strategies:
+    - Lazy loading (cache miss)
+        - Can be used with TTL and Without TTL
+        - Used when data is not time sensitive
+        - Read heavy workloads can be handled
+    - Write through (cache write)
+    - Time to live (TTL) or eviction (cache expiration)
 
 ## 11. Key Pairs
 - Public and private key to connect to EC2 instances
@@ -179,7 +186,6 @@ to your instances.
     2. memberOf
 - ECR is backed by S3
 - EKS is way to launch managed Kubernetes clusters on AWS
-
 > Note: If you terminate the container instance while it was in `STOPPED` state, that will lead to synchronization issues between ECS and EC2. 
 > Solution is to `Deregister` the container instance from ECS cluster before terminating it.
 
@@ -259,12 +265,13 @@ to your instances.
 
 ## 16. S3
 - Infinitely scalable
-- Use cases:
-    - Backup/Storage
-    - Static website hosting
-    - Disaster Recovery
-    - Media hosting (videos, images, etc.)
+### Use cases:
+    Backup/Storage
+    Static website hosting
+    Disaster Recovery
+    Media hosting (videos, images, etc.)
 - Max file size: 5TB
+- To get a n object per page using CLI use `--page-size` option with `--max-items` option.
 - if more than 5GB then use multi-part upload
 - Enabling versioning will have version `null`
 - Suspending versioning doesn't delete the previous versions
@@ -273,20 +280,17 @@ to your instances.
 - SRR (Same Region Replication)
     - log aggregation, live replication between production and test accounts
 - To give access of object for particular time period use `Pre-Signed URL` 
-
-- S3 Storage classes:
-    - S3 Standard
-    - S3 Intelligent Tiering
-    - S3 Standard-Infrequent Access (IA)
-    - S3 One Zone-Infrequent Access
-    - S3 Glacier Instant Retreival
-    - S3 Glacier Flexible Retreival
-    - S3 Glacier Deep Archive
-
+### S3 Storage classes:
+    S3 Standard
+    S3 Intelligent Tiering
+    S3 Standard-Infrequent Access (IA)
+    S3 One Zone-Infrequent Access
+    S3 Glacier Instant Retreival
+    S3 Glacier Flexible Retreival
+    S3 Glacier Deep Archive
 > Adopting an object key naming pattern that distributes reads across a larger number of key names can improve performance across the prefix because Amazon S3 can load-balance prefixes that have less traffic onto fewer servers. 
 
 ### S3 Replication:
-
 - S3 lifecycle action `can't` be replicated
 - Types of replication:
     - Cross Region Replication (CRR)
@@ -294,20 +298,19 @@ to your instances.
 - S3 Batch Replication used to replicate existing objects to another bucket or another AWS account ( on-demand )
 
 ### S3 Lifecycle rules:
-    - Transition action: move objects to another storage class after a certain period of time 
-    - Expiration action: delete the object after a certain period of time
-    - Can be applied to current versions and previous versions
+- Transition action: move objects to another storage class after a certain period of time 
+- Expiration action: delete the object after a certain period of time
+- Can be applied to current versions and previous versions
 
 ### S3 Baseline Performance:
-    - 3,500 PUT/COPY/POST/DELETE or 5,500 GET/HEAD requests per second per prefix in a bucket
-    - If you spread reads across all the prefixes, you can achieve 22,000 read requests per second
+- 3,500 PUT/COPY/POST/DELETE or 5,500 GET/HEAD requests per second per prefix in a bucket
+- If you spread reads across all the prefixes, you can achieve 22,000 read requests per second
 
 ### S3 Encryption:
 - With Amazon S3-Managed Keys (SSE-S3)
     - Enabled by default
     - Uses AES-256 encryption
     - Header: `x-amz-server-side-encryption: AES256`
-
 - With AWS KMS-Managed Keys (SSE-KMS)
     - user control + audit trail (who used the key to access which object)
     - Header: `x-amz-server-side-encryption: aws:kms`
@@ -315,24 +318,20 @@ to your instances.
         1. Must be in the same region
         2. Additional charges from KMS
         3. `GenerateDataKey` and `Decrypt` API calls are needed to upload/download objects
-    
 - With Customer-Provided Keys (SSE-C)
     - Client-Side Encryption
     - Uses client-side lib.
     - Must decrypt by themselves
 
 ## 17. CloudFront
-
 - DDos protection, integration with Shield, AWS Web Application Firewall
 
 ### CloudFront Origins:
-
 - s3 bucket for distributing files and caching them at the edge
 - Custom Origin (HTTP) for distributing dynamic content
 - Invalidate cache using `CreateInvalidation` API.
 
 ### CloudFront vs S3 Cross Region Replication:
-
 | CloudFront | S3 CRR |
 | --- | --- |
 | Global edge network | Must be setup for each region |
@@ -340,16 +339,13 @@ to your instances.
 | Great for static content | Great for dynamic content |
 
 ### CloudFront functions:
-
 - Lightweight, written in `JS`, edge compute for modifying requests and responses
 - Can be used to modify headers, redirect users, etc.
 
 ## 18. Elastic Beanstalk
-
 - Managed service to deploy web applications
 
 ### Deployment modes:
-
 1. Single instance deployment: good for dev
 2. High availability with load balancing: prod
 
@@ -387,14 +383,13 @@ to your instances.
 2. Life cycle policy:
     - Based on time
     - Based on space
-
 - Uses CloudFormation under the hood
 - `RDS` can be provisioned with beanstalk, gr8 for dev/test but not for prod.
 - Best way is to separately create RDS DB and provide connection string to `EB`
 
 ## 19. CloudFormation
-> - Infra as a code
-> - Can' t create dynamic amount of res.
+- Infra as a code
+- Can' t create dynamic amount of res.
 ### Templates Components:
 1. Resources: your AWS resources declared in the template (MANDATORY)
     - Core of CF
@@ -429,7 +424,6 @@ to your instances.
 - Prevent updates to certain resources
 - JSON based
 - Works only on update stack
-
 > Note: An exported value in cloudformation must be unique within an AWS region ( Same region ) 
 
 ## 20. SQS
@@ -441,33 +435,28 @@ to your instances.
 throughput of processing
 
 ### SQS Security:
-
 - In-flight encryption using HTTPS API
 - At-rest encryption using KMS keys
 - Client-side encryption if the client wants
 - SQS Access Policies (similar to S3 bucket policies)
 
 ### MSG Visibility Timeout:
-
 - Default timeout: 30s
 - If a message is not processed within the visibility timeout, it will be processed twice
 - If visibility timeout is high (hours), and consumer crashes
 - If visibility timeout is low, may get duplicates
 
 ### DLQ:
-
 - If a consumer fails to process a message, it can be sent to a dead-letter queue (DLQ)
 - Useful to debug errors
 - `redrive allow policy` used to specify which source queues can access the DLQ
 - `maxReceiveCount` used to specify how many times a message can be received before being sent to the DLQ 
 
 ### SQS Long Polling:
-
 - Long polling can be enabled at the queue level
 - `ReceiveMessageWaitTimeSeconds` API used to enable long polling (1-20s)
 
 ### SQL Important APIs:
-
 - `CreateQueue` (MessageRetentionPeriod), `DeleteQueue`
 - `PurgeQueue`: delete all the messages in queue
 - `SendMessage` (DelaySeconds), `ReceiveMessage`, `DeleteMessage`
@@ -476,14 +465,12 @@ throughput of processing
 - `ChangeMessageVisibility`: change the message timeout
 
 ### SQS Delay Queues:
-
 - Used to postpone the delivery of new messages
 - Default delay: 0s, max 15 mins
 - Can set a default delay for the entire queue
 - Can override the delay on a per-message basis
 
 ### SQS Extended Client:
-
 - Used to send messages larger than 256KB.
 - Can store up to 2GB of data per message.
 - Uses S3 to store the message payloads
@@ -497,7 +484,6 @@ throughput of processing
 - 100,000 topics limit
 
 ### SNS vs SQS:
-
 | SNS | SQS |
 | --- | --- |
 | Push mechanism | Pull mechanism |
@@ -517,9 +503,9 @@ throughput of processing
     - Need to choose number of shards
 - On demand mode:
     - Default capacity is 4MBs in or 4000 records per sec
+- Each EC2 is compatible to handle 5 shards
 
 #### Kinesis Data Streams Security:
-
 - HTTPS, KMS for encryption at rest
 - VPC endpoints available for Kinesis Data Streams
 - Monitor API calls using `CloudTrail`
@@ -535,7 +521,6 @@ throughput of processing
 - Real time analytics using SQL
 - Fully managed
 - Use cases: real time dashboards, real time metrics, generate alerts, etc.
-
 - `Kinesis Video Streams`: Capture, process, and store video streams.
 
 ## 23. Lambda
@@ -556,14 +541,11 @@ throughput of processing
 - 2 types of Lambda authorizers:
     - Token-based: uses bearer token (JWT)
     - Request-based: uses headers, query strings, stage variables, etc.
-
-
 - Lambda can be deployed as a container up to 10GB from ECR
 - **`Lambda Runtime Interface Emulator`** used to test lambda functions locally
 - Must create the Lambda function from the same account as the container registry in Amazon ECR
 
 ### Lambda@Edge:
-
 - Used to run Lambda functions at the edge locations of CloudFront to provide low latency to end users
 - CloudFront provides 2 types:
 1. Lambda@Edge
@@ -573,7 +555,6 @@ throughput of processing
 - Scale 1000s of req/s
 
 ### CloudFront Functions vs Lambda@Edge:
-
 || CloudFront Functions | Lambda@Edge |
 | --- | --- | --- |
 | Runtime | JavaScript | Node.js, Python |
@@ -581,13 +562,11 @@ throughput of processing
 | Max memory | 2MB | 128MB up to 10GB |
 
 ### Lambda Layers:
-
 - Used to share code and dependencies between functions
 - Custom runtimes can be created using layers
 - 5 layers per function up to 250MB
 
 ### Lambda Dependencies:
-
 - Dependencies can be packaged with the function or in a Lambda Layer
 - Upload a zip if < 50MB else in s3
 - Can deploy lambda as container up to 10GB from ECR
@@ -607,31 +586,26 @@ throughput of processing
     - Distribute par tition keys across multiple partitions
 
 ### DynamoDB PartiQL:
-
 - SQL-compatible query language for Dynamo
 - Can't do joins or aggregations (only SELECT, INSERT, UPDATE, DELETE)
 
 ### DynamoDB LSIs:
-
 - Local Secondary Indexes
 - Alt sort key for the table
 - Up to 5 LSIs per table
 
 ### DynamoDB GSIs:
-
 - Global Secondary Indexes
 - Speeds up queries on non-key attributes
 - Can be added / modified anytime
 - If write capacity is exceeded, then write is throttled in main table and GSI
 
 ### DynamoDB Optimistic Locking:
-
 - Prevents concurrent writes to the same item
 - Uses a version number (attribute `“version”`) on each record
 - If version number doesn’t match, then write is rejected
 
 ### DynamoDB Accelerator (DAX):
-
 - In memory cache of Dynamo
 - Solves `hot key` problem
 - `5min` default TTL
@@ -639,7 +613,6 @@ throughput of processing
 - Multi AZ
 
 ### DynamoDB Streams:
-
 - Stream of item lvl modification
 - Retention: 24 hours by default, up to 7 days
 - Expired item will be deleted within `48 hours`
@@ -647,7 +620,6 @@ throughput of processing
 - Streams can be enabled on the main table or GSI
 
 ### DynamoDB Transactions:
-
 - Consumes 2x the WCU/RCU
 - Up to 25 items or 4MB of data
 - Two operations:
@@ -664,7 +636,6 @@ throughput of processing
     > 3 ∗ (5kb/1kb) ∗ 2 (𝑡𝑟𝑎𝑛𝑠𝑎𝑐𝑡𝑖𝑜𝑛𝑎𝑙 𝑐𝑜𝑠𝑡) = 30 𝑊𝐶𝑈𝑠
 
 ### DynamoDB Backup:
-
 - Default backup option: On-Demand Backup, Point-in-Time Recovery (PITR)
 - In default backup option, backups are stored in S3 but can’t be accessed directly. (only through DynamoDB) So if you want to access the s3 the simple way is to use `Export to S3` option.
 - AWS other services such as `Data Pipeline`, `EMR`, `Glue` can be used to export data from DynamoDB to S3. 
@@ -688,7 +659,6 @@ throughput of processing
 - API Gateway do not support `AWS STS` (Security Token Service) API calls.
 
 ### HTTP API vs REST API:
-
 | HTTP API | REST API |
 | --- | --- |
 | Cheaper | More features |
@@ -739,13 +709,11 @@ throughput of processing
 - All in one service for CICD
 
 ### CodeArtifact:
-
 - Fully managed artifact repository
 - Store and share software packages
 - Supports Maven and npm packages
 
 ### CodeGuru:
-
 - Supports Java and Python
 
 ## 27. SAM - Serverless Application Model
@@ -760,8 +728,6 @@ throughput of processing
 - `sam local invoke`: invoke the application locally
 - `sam local start-api`: start the API locally
 - `sam local start-lambda`: start the Lambda
-
-
 
 ## 28. IAM ( User, Group, Policy )
 - User: are people within your organization, and can be grouped
@@ -783,12 +749,9 @@ throughput of processing
     - Action: list of actions this policy allows or denies
     - Resource: list of resources to which the actions applied to
     - Condition: conditions for when this policy is in Effect
-
 - AWS SDKs (JavaScript, Python, PHP, .NET, Ruby, Java, Go, Node.js, C++)
-
 - IAM Credentials Report (account-level):
 • a report that lists all your account's users and the status of their various credentials
-
 - IAM Access Advisor (user-level)
 - Access advisor shows the service permissions granted to a user and when those services were last accessed.
 
@@ -824,7 +787,6 @@ throughput of processing
 - Uses filter expressions to search for matches in log events
 
 ### CloudWatch Alarms:
-
 - Used to trigger notifications for any metric
 - Alarm states: OK, INSUFFICIENT_DATA, ALARM
 - Alarm can trigger Auto Scaling, EC2 actions, SNS notifications
@@ -836,7 +798,6 @@ ALARM --state-reason "testing purposes"
 ```
 - Composite alarms: multiple alarms combined together with AND/OR logic
 - AWS requires approx `5 weeks` of usage to create a forecast
-
 
 ## 30. AWS Other Services
 
@@ -859,8 +820,6 @@ ALARM --state-reason "testing purposes"
 - Wait state: wait before moving to the next state
 
 #### Step Functions Standard vs Express Workflows:
-    
-
 | Standard | Express |
 | --- | --- |
 | Standard workflows have exactly-once workflow execution and can run for up to `1 year`. This means that each step in a Standard workflow will execute exactly once.| Express workflows, however, have at-least-once workflow execution and can run for `up to 5 minutes`. |
@@ -921,20 +880,17 @@ ALARM --state-reason "testing purposes"
 - KMS stores CMKs in a `key store` and encrypts the data received from the client using the CMK
 
 ### SSM Parameter Store:
-
 - Secure storage for configuration and secrets
 - Can be used to store passwords, database strings, API keys, etc.
 - Can be used to store encrypted data
 - Has a limit of 8KB for encryption
 
 ### AWS Secrets Manager:
-
 - Meant for storing secrets
 - `Rotation` feature to automatically rotate secrets
 - Integrates with RDS.
 - Secrets are encrypted using `KMS`
 
 ### AWS Nitro Enclaves:
-
 - Isolated compute environment to process sensitive data.
 - Uses `KMS` to encrypt data in transit
