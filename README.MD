@@ -265,6 +265,13 @@ to your instances.
 
 ## 16. S3
 - Infinitely scalable
+- AWS CLI has 3 options to control pagination:
+    - `--page-size` option to specify the number of items per page
+    - `--max-items` option to specify the total number of items to retrieve
+    - `--starting-token` option to specify the offset of the first item to retrieve.
+```bash
+aws s3api list-objects --bucket my-bucket --page-size 10 --max-items 100
+```
 ### Use cases:
     Backup/Storage
     Static website hosting
@@ -577,8 +584,9 @@ throughput of processing
 - max size of item: 400KB
 - max size of partition key: 2048 bytes
 - `“ProvisionedThroughputExceededException”` error occurs when limit is exceeded (read/write capacity)
+- By default DynamoDB uses a `page size of 1000`and retrieves all available items.
 - 1 WCU = 1 write per second for an item up to 1KB
-- 1 RCU = 1 strongly consistent read per second, or 2 eventually consistent reads per second, for an item up to 4KB
+- 1 RCU = 1 strongly consistent read per second, or 2 eventually consistent reads per second, for an item up to 4KB.
 > Example: 10 strongly consistent reads per second of 6kb items is demanded when how many RCU is needed?
 > 10 * 6kb/4kb = 15 RCU
 - When capacity is exceeded, requests are throttled
@@ -799,7 +807,13 @@ ALARM --state-reason "testing purposes"
 - Composite alarms: multiple alarms combined together with AND/OR logic
 - AWS requires approx `5 weeks` of usage to create a forecast
 
-## 30. AWS Other Services
+## 30. AWS X-Ray
+- Used to debug and analyze distributed applications in centralize location (tracing)
+- Can be used to analyze performance bottlenecks
+- Unified account level view of all traces
+> Unified account i
+
+## 31. AWS Other Services
 
 ### AWS Cognito:
 - Used to add authentication, authorization, and user management to web and mobile apps
@@ -868,7 +882,7 @@ ALARM --state-reason "testing purposes"
 - Independent from application code.
 - Features: flags, app tuning, allow/deny, etc.
 
-## 31, AWS Security Services
+## 32. AWS Security Services
 
 ### AWS KMS - Key Management Service:
 - managed by AWS
